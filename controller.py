@@ -9,6 +9,8 @@ from Queue import Queue
 from threading import Thread
 from thread import *
 
+from utils import StoppableThread
+
 HOST = ''
 PORT = 8888
 
@@ -27,11 +29,10 @@ print "socket bind complete"
 s.listen(10)
 print 'Socket now listening'
 
-class Controller(Thread):
+class Controller(StoppableThread):
 
 	def __init__(self):
 		super(Controller, self).__init__()
-		self.stop_flag = False
 		self.clients = []
 		self.TempClients = []
 
@@ -49,7 +50,8 @@ class Controller(Thread):
 			print 'Sent data to client'
 
 	def stop(self):
-		self.stop_flag = True
+		super(Controller, self).stop()
+
 		for client in self.clients:
 			print "Stopping a client"
 			client.stop()
@@ -59,8 +61,8 @@ class Controller(Thread):
 		print "done stopping"
 
 	def run(self):
-		while not self.stop_flag:
-			time.sleep(5)
+		while self.isRunning():
+			self.sleep(5)
 			print "Controller thread running..."
 
 
@@ -69,16 +71,12 @@ myController.start()
 
 
 #Function for handling connections
-class clientThread(Thread):
+class clientThread(StoppableThread):
 
 	def __init__(self, conn):
 		super(clientThread, self).__init__()
 		self.conn = conn
-		self.stop_flag = False
 		self.EventData = Queue()
-
-	def stop(self):
-		self.stop_flag = True
 
 	def receivedData(self, data):
 		reply = 'Message Received at the server!\n'
@@ -113,7 +111,7 @@ class clientThread(Thread):
 		self.conn.send('Welcome to the server.\n') #send only takes string
 
 		#infinite loop so that function do not terminate and thread do not end.
-		while not self.stop_flag:
+		while self.isRunning():
 			print 'looping ' + str(self.conn.getpeername())
 
 			try:
